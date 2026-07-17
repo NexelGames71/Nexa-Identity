@@ -1,8 +1,10 @@
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import { randomBytes } from "node:crypto";
+import type { IncomingMessage, ServerResponse } from "node:http";
+import { createRequire } from "node:module";
 import express from "express";
-import helmet from "helmet";
+import type helmetDefault from "helmet";
 import { adminRouter } from "./admin/admin.routes.js";
 import { requireAdminDashboardAccess } from "./admin/middleware/admin-local-access.js";
 import { adminApiRouter } from "./admin/routes/admin-api.routes.js";
@@ -26,6 +28,9 @@ import { sessionRouter } from "./sessions/session.routes.js";
 import { subscriptionRouter } from "./subscriptions/subscription.routes.js";
 import { systemRouter } from "./system/system.routes.js";
 
+const require = createRequire(import.meta.url);
+const helmet = require("helmet") as typeof helmetDefault;
+
 export function createApp() {
   const app = express();
 
@@ -42,7 +47,11 @@ export function createApp() {
     helmet({
       contentSecurityPolicy: {
         directives: {
-          scriptSrc: ["'self'", (_req, res) => `'nonce-${(res as express.Response).locals.cspNonce}'`],
+          scriptSrc: [
+            "'self'",
+            (_req: IncomingMessage, res: ServerResponse) =>
+              `'nonce-${(res as express.Response).locals.cspNonce}'`
+          ],
           scriptSrcAttr: ["'unsafe-inline'"]
         }
       }
