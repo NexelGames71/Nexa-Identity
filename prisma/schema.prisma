@@ -1,0 +1,453 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserStatus {
+  active
+  disabled
+  locked
+  pending_verification
+}
+
+enum EntitlementStatus {
+  active
+  expired
+  disabled
+}
+
+enum SubscriptionStatus {
+  trialing
+  active
+  past_due
+  canceled
+  unpaid
+}
+
+enum OrganizationStatus {
+  active
+  disabled
+}
+
+enum OrganizationRole {
+  owner
+  admin
+  developer
+  viewer
+}
+
+enum MembershipStatus {
+  active
+  invited
+  suspended
+}
+
+enum AdminRoleName {
+  owner
+  admin
+  support
+  security
+  billing
+  developer
+}
+
+enum BetaStatus {
+  invited
+  active
+  paused
+  removed
+  completed
+}
+
+enum BetaTesterType {
+  internal
+  developer
+  student
+  founder
+  business
+  friend_family
+  public_beta
+}
+
+enum EmailEventStatus {
+  queued
+  sent
+  failed
+}
+
+model User {
+  id                 String               @id @default(cuid())
+  supabaseAuthUserId String?              @unique
+  email              String               @unique
+  username           String               @unique
+  displayName        String
+  avatarUrl          String?
+  passwordHash       String
+  emailVerified      Boolean              @default(false)
+  status             UserStatus           @default(pending_verification)
+  failedLoginCount   Int                  @default(0)
+  lockedUntil        DateTime?
+  role               String               @default("user")
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  profile            Profile?
+  sessions           Session[]
+  devices            Device[]
+  entitlements       ProductEntitlement[]
+  subscriptions      Subscription[]
+  permissions        Permission[]
+  emailVerificationTokens EmailVerificationToken[]
+  passwordResetTokens     PasswordResetToken[]
+  adminRoles         AdminRole[]          @relation("AdminRoleUser")
+  adminRolesCreated  AdminRole[]          @relation("AdminRoleCreator")
+  adminSessions      AdminSession[]
+  betaAccess         BetaAccess?
+  supportNotesTarget SupportNote[]        @relation("SupportNoteTarget")
+  supportNotesAdmin  SupportNote[]        @relation("SupportNoteAdmin")
+  emailEventsTarget  EmailEvent[]         @relation("EmailEventTarget")
+  emailEventsAdmin   EmailEvent[]         @relation("EmailEventAdmin")
+  organizationsOwned Organization[]
+  memberships        OrganizationMember[]
+  apiKeys            ApiKey[]
+  auditLogs          AuditLog[]
+  authCodes          AuthCode[]
+
+  @@index([status])
+}
+
+model AuthCode {
+  id          String    @id @default(cuid())
+  codeHash    String    @unique
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  clientId    String
+  redirectUri String
+  returnTo    String
+  expiresAt   DateTime
+  usedAt      DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([userId])
+  @@index([clientId, expiresAt])
+}
+
+model AdminRole {
+  id          String        @id @default(cuid())
+  userId      String
+  user        User          @relation("AdminRoleUser", fields: [userId], references: [id], onDelete: Cascade)
+  role        AdminRoleName
+  permissions String[]
+  createdBy   String?
+  creator     User?         @relation("AdminRoleCreator", fields: [createdBy], references: [id], onDelete: SetNull)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  revokedAt   DateTime?
+
+  @@index([userId, revokedAt])
+  @@index([role])
+}
+
+model AdminSession {
+  id               String        @id @default(cuid())
+  adminUserId      String
+  adminUser        User          @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
+  role             AdminRoleName
+  sessionTokenHash String
+  ipAddress        String?
+  userAgent        String?
+  createdAt        DateTime      @default(now())
+  lastActiveAt     DateTime      @default(now())
+  expiresAt        DateTime
+  revokedAt        DateTime?
+  mfaVerified      Boolean       @default(false)
+
+  @@index([adminUserId, revokedAt])
+  @@index([sessionTokenHash])
+}
+
+model BetaAccess {
+  id             String         @id @default(cuid())
+  userId         String         @unique
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  products       String[]
+  betaStatus     BetaStatus     @default(invited)
+  inviteCode     String?        @unique
+  invitedAt      DateTime?
+  joinedAt       DateTime?
+  testerType     BetaTesterType @default(public_beta)
+  notes          String?
+  feedbackStatus String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@index([betaStatus])
+}
+
+model SupportNote {
+  id           String   @id @default(cuid())
+  targetUserId String
+  targetUser   User     @relation("SupportNoteTarget", fields: [targetUserId], references: [id], onDelete: Cascade)
+  adminUserId  String
+  adminUser    User     @relation("SupportNoteAdmin", fields: [adminUserId], references: [id], onDelete: Restrict)
+  note         String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([targetUserId, createdAt])
+}
+
+model EmailEvent {
+  id                String           @id @default(cuid())
+  targetUserId      String
+  targetUser        User             @relation("EmailEventTarget", fields: [targetUserId], references: [id], onDelete: Cascade)
+  adminUserId       String?
+  adminUser         User?            @relation("EmailEventAdmin", fields: [adminUserId], references: [id], onDelete: SetNull)
+  template          String
+  provider          String
+  providerMessageId String?
+  status            EmailEventStatus
+  error             String?
+  createdAt         DateTime         @default(now())
+
+  @@index([targetUserId, createdAt])
+  @@index([adminUserId, createdAt])
+  @@index([template, status])
+}
+
+model EmailVerificationToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, usedAt])
+  @@index([tokenHash])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, usedAt])
+  @@index([tokenHash])
+}
+
+model Profile {
+  userId    String   @id
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  firstName String?
+  lastName  String?
+  country   String?
+  timezone  String?
+  language  String?
+  bio       String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Session {
+  id               String    @id @default(cuid())
+  userId           String
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refreshTokenHash String
+  deviceId         String?
+  device           Device?   @relation(fields: [deviceId], references: [id], onDelete: SetNull)
+  ipAddress        String?
+  userAgent        String?
+  expiresAt        DateTime
+  revokedAt        DateTime?
+  createdAt        DateTime  @default(now())
+
+  @@index([userId, revokedAt])
+  @@index([refreshTokenHash])
+}
+
+model Device {
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deviceName    String
+  deviceType    String?
+  platform      String?
+  browser       String?
+  lastIpAddress String?
+  lastActiveAt  DateTime?
+  trusted       Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  sessions      Session[]
+
+  @@index([userId])
+}
+
+model Product {
+  id           String               @id
+  name         String
+  description  String?
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+  entitlements ProductEntitlement[]
+}
+
+model ProductEntitlement {
+  id        String            @id @default(cuid())
+  userId    String
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product           @relation(fields: [productId], references: [id], onDelete: Cascade)
+  plan      String
+  status    EntitlementStatus @default(active)
+  startsAt  DateTime          @default(now())
+  expiresAt DateTime?
+  limits    Json              @default("{}")
+  metadata  Json              @default("{}")
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  @@unique([userId, productId])
+  @@index([userId, status])
+}
+
+model Subscription {
+  id                 String             @id @default(cuid())
+  userId             String
+  user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  billingProvider    String
+  billingCustomerId  String?
+  billingSubscriptionId String?
+  planId             String
+  status             SubscriptionStatus
+  currentPeriodStart DateTime?
+  currentPeriodEnd   DateTime?
+  cancelAtPeriodEnd  Boolean            @default(false)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  @@index([userId, status])
+}
+
+model Permission {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  scope     String
+  value     Boolean  @default(false)
+  source    String   @default("user")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, scope])
+  @@index([scope, value])
+}
+
+model Organization {
+  id          String               @id @default(cuid())
+  name        String
+  slug        String               @unique
+  ownerUserId String
+  owner       User                 @relation(fields: [ownerUserId], references: [id], onDelete: Restrict)
+  plan        String               @default("free")
+  status      OrganizationStatus   @default(active)
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+  members     OrganizationMember[]
+  invites     OrganizationInvite[]
+  apiKeys     ApiKey[]
+  auditLogs   AuditLog[]
+}
+
+model OrganizationMember {
+  id             String           @id @default(cuid())
+  organizationId String
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role           OrganizationRole
+  status         MembershipStatus @default(active)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  @@unique([organizationId, userId])
+  @@index([userId])
+}
+
+model OrganizationInvite {
+  id             String           @id @default(cuid())
+  organizationId String
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  email          String
+  role           OrganizationRole
+  tokenHash      String
+  invitedByUserId String
+  expiresAt      DateTime
+  acceptedAt     DateTime?
+  revokedAt      DateTime?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  @@index([organizationId, email])
+  @@index([tokenHash])
+}
+
+model AccountDeletionRequest {
+  id          String    @id @default(cuid())
+  userId      String
+  requestedBy String
+  reason      String?
+  status      String    @default("pending")
+  reviewedBy  String?
+  reviewedAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([userId, status])
+}
+
+model ApiKey {
+  id             String        @id @default(cuid())
+  userId         String
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String
+  keyHash        String
+  prefix         String
+  scopes         String[]
+  lastUsedAt     DateTime?
+  expiresAt      DateTime?
+  revokedAt      DateTime?
+  createdAt      DateTime      @default(now())
+
+  @@index([userId, revokedAt])
+  @@index([prefix])
+}
+
+model AuditLog {
+  id             String        @id @default(cuid())
+  userId         String?
+  user           User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  action         String
+  resourceType   String?
+  resourceId     String?
+  ipAddress      String?
+  userAgent      String?
+  metadata       Json          @default("{}")
+  createdAt      DateTime      @default(now())
+
+  @@index([userId, createdAt])
+  @@index([action])
+}

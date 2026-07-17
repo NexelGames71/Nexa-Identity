@@ -1,0 +1,41 @@
+# Environment Variables
+
+- `APP_ENV`: `development`, `testing`, or `production`.
+- `APP_PORT`: HTTP port.
+- `DATABASE_PROVIDER`: must be `prisma`.
+- `DATABASE_URL`: Supabase PostgreSQL connection string.
+- `JWT_ACCESS_SECRET`: signing secret for short-lived API tokens.
+- `JWT_REFRESH_SECRET`: signing secret for refresh tokens.
+- `ACCESS_TOKEN_EXPIRES_IN`: duration such as `15m`.
+- `REFRESH_TOKEN_EXPIRES_IN`: duration such as `30d`.
+- `CORS_ALLOWED_ORIGINS`: comma-separated browser origins.
+- `SUPABASE_URL`: Supabase project URL.
+- `SUPABASE_PUBLISHABLE_KEY`: public Supabase publishable key.
+- `SUPABASE_SECRET_KEY`: server-only Supabase secret key, if server-side Supabase admin access is needed.
+- `SUPABASE_JWKS_URL`: Supabase Auth JWKS URL.
+- `SUPABASE_OIDC_TOKEN_ENDPOINT`: Supabase OAuth token endpoint.
+- `SUPABASE_OIDC_AUTHORIZATION_ENDPOINT`: Supabase OAuth authorization endpoint.
+- `SUPABASE_OIDC_DISCOVERY_URL`: Supabase OIDC discovery URL.
+- `EMAIL_PROVIDER`: `development`, `resend`, or `disabled`.
+- `EMAIL_PROVIDER_API_KEY`: legacy fallback email API key variable.
+- `RESEND_API_KEY`: Resend API key for production email delivery.
+- `EMAIL_FROM`: verified sender identity used by the email provider.
+- `ADMIN_EMAIL_FROM`: verified sender identity for admin-triggered emails, for example `Nexa Admin <admin@admin.nexaidentity.com>`.
+- `IDENTITY_BASE_URL`: public identity service URL used in email links.
+- `BILLING_PROVIDER_SECRET`: reserved for billing integration.
+- `BILLING_PROVIDER`: `manual` or `paypal`.
+- `PAYPAL_CLIENT_ID`: PayPal REST app client id. Store only in `.env` or a secret manager.
+- `PAYPAL_CLIENT_SECRET`: PayPal REST app secret. Store only in `.env` or a secret manager.
+- `PAYPAL_ENVIRONMENT`: `sandbox` or `live`.
+- `PAYPAL_PLAN_IDS`: JSON object mapping Nexa plans to PayPal plan IDs, for example `{"plus":"P-...","pro":"P-..."}`.
+- `ADMIN_DASHBOARD_ENABLED`: enables the internal admin dashboard/API surface.
+- `ADMIN_DASHBOARD_HOST`: admin dashboard bind host, default `127.0.0.1`.
+- `ADMIN_DASHBOARD_PORT`: admin dashboard port, default `3001`.
+- `ADMIN_ALLOW_LAN`: must be `true` before LAN access is allowed.
+- `ADMIN_ALLOWED_IPS`: comma-separated admin IP allowlist.
+- `ADMIN_SESSION_EXPIRES_IN`: short admin session duration, default `2h`.
+- `ADMIN_REQUIRE_HTTPS`: future production HTTPS enforcement flag.
+- `ALLOW_OWNER_BOOTSTRAP`: temporarily enables first-owner creation.
+- `OWNER_BOOTSTRAP_TOKEN`: required for owner bootstrap in production.
+
+For Vercel production, set `IDENTITY_BASE_URL=https://identity.trynexa-ai.com` and include `https://identity.trynexa-ai.com` in `CORS_ALLOWED_ORIGINS`.
