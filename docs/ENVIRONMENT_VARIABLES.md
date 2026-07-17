@@ -27,7 +27,7 @@
 - `PAYPAL_CLIENT_ID`: PayPal REST app client id. Store only in `.env` or a secret manager.
 - `PAYPAL_CLIENT_SECRET`: PayPal REST app secret. Store only in `.env` or a secret manager.
 - `PAYPAL_ENVIRONMENT`: `sandbox` or `live`.
-- `PAYPAL_PLAN_IDS`: JSON object mapping Nexa plans to PayPal plan IDs, for example `{"plus":"P-...","pro":"P-..."}`.
+- `PAYPAL_PLAN_IDS`: optional JSON override for Nexa plan IDs. Defaults live in `src/subscriptions/paypal-plan-config.ts`; keep this as `{}` unless you need an emergency runtime override.
 - `ADMIN_DASHBOARD_ENABLED`: enables the internal admin dashboard/API surface.
 - `ADMIN_DASHBOARD_HOST`: admin dashboard bind host, default `127.0.0.1`.
 - `ADMIN_DASHBOARD_PORT`: admin dashboard port, default `3001`.

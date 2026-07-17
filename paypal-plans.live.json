@@ -1,0 +1,39 @@
+{
+  "environment": "live",
+  "product": {
+    "name": "Nexa AI Subscription",
+    "paypalProductId": "PROD-06F53907CS3715546"
+  },
+  "plans": {
+    "plus": {
+      "name": "Nexa Plus",
+      "price": "17.00",
+      "currency": "USD",
+      "billingType": "fixed",
+      "paypalPlanId": "P-9X3232505F511992BNJDEJQY"
+    },
+    "pro": {
+      "name": "Nexa Pro",
+      "price": "90.00",
+      "currency": "USD",
+      "billingType": "fixed",
+      "paypalPlanId": "P-6CG00465ES661493JNJDEJQY"
+    },
+    "premium": {
+      "name": "Nexa Premium",
+      "price": "120.00",
+      "currency": "USD",
+      "billingType": "fixed",
+      "paypalPlanId": "P-1FM44767M6609432KNJDEJRA"
+    },
+    "business": {
+      "name": "Nexa Business",
+      "price": "20.00",
+      "currency": "USD",
+      "billingType": "per_seat",
+      "unitName": "seat",
+      "paypalPlanId": "P-8AW555793F363151WNJDEJRA"
+    }
+  },
+  "createdAt": "2026-07-17T00:00:00.000Z"
+}

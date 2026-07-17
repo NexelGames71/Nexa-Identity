@@ -18,7 +18,9 @@
     "prisma:seed": "prisma db seed",
     "prisma:studio": "prisma studio",
     "identity:create-owner": "tsx scripts/create-owner-admin.ts",
-    "identity:seed-admin-tests": "tsx scripts/seed-nexa-admin-test-accounts.ts"
+    "identity:seed-admin-tests": "tsx scripts/seed-nexa-admin-test-accounts.ts",
+    "paypal:create-plans": "tsx scripts/create-paypal-plans.ts",
+    "paypal:sync-plan-config": "tsx scripts/sync-paypal-plan-config.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.1.0",

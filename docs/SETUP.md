@@ -38,7 +38,28 @@ BILLING_PROVIDER=paypal
 PAYPAL_CLIENT_ID=your-rotated-client-id
 PAYPAL_CLIENT_SECRET=your-rotated-client-secret
 PAYPAL_ENVIRONMENT=sandbox
-PAYPAL_PLAN_IDS='{"plus":"P-...","pro":"P-...","premium":"P-...","business":"P-..."}'
+PAYPAL_PLAN_IDS={}
+```
+
+Nexa Identity owns PayPal products and subscription plan IDs. The sandbox/live plan files are
+`paypal-plans.sandbox.json` and `paypal-plans.live.json`, and the runtime defaults live in
+`src/subscriptions/paypal-plan-config.ts`. `PAYPAL_PLAN_IDS` is only needed when you want an environment-level override.
+
+To create or rotate PayPal plans from Identity:
+
+```powershell
+cd "C:\Nexa Identity"
+$env:PAYPAL_ENVIRONMENT="sandbox"
+npm.cmd run paypal:create-plans
+npm.cmd run paypal:sync-plan-config -- --env sandbox
+```
+
+For live PayPal plans, set `PAYPAL_ENVIRONMENT=live` and pass `--confirm-live`:
+
+```powershell
+$env:PAYPAL_ENVIRONMENT="live"
+npm.cmd run paypal:create-plans -- --confirm-live
+npm.cmd run paypal:sync-plan-config -- --env live
 ```
 
 For Resend email delivery, put credentials only in `.env`:

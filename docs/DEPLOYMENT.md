@@ -50,8 +50,12 @@ BILLING_PROVIDER=paypal
 PAYPAL_ENVIRONMENT=live
 PAYPAL_CLIENT_ID=<paypal live client id>
 PAYPAL_CLIENT_SECRET=<paypal live secret>
-PAYPAL_PLAN_IDS={"plus":"P-...","pro":"P-...","premium":"P-...","business":"P-..."}
+PAYPAL_PLAN_IDS={}
 ```
+
+Identity ships the current Nexa PayPal plan references in `src/subscriptions/paypal-plan-config.ts`,
+backed by `paypal-plans.sandbox.json` and `paypal-plans.live.json`. Use `PAYPAL_PLAN_IDS` only for
+an emergency environment-level override.
 
 ## Release Commands
 
@@ -71,7 +75,16 @@ npm run prisma:deploy
 
 The initial migration lives under `prisma/migrations` and creates the full identity schema. Run migrations as a release step before starting the application.
 
-Billing defaults to the manual provider. Set `BILLING_PROVIDER=paypal` plus PayPal credentials and PayPal plan IDs to enable checkout. `GET /v1/billing/readiness` reports missing billing configuration without exposing secrets.
+Billing defaults to the manual provider. Set `BILLING_PROVIDER=paypal` plus PayPal credentials to enable checkout. `GET /v1/billing/readiness` reports missing billing configuration without exposing secrets.
+
+To rotate PayPal products or plans from Identity:
+
+```powershell
+npm.cmd run paypal:create-plans
+npm.cmd run paypal:sync-plan-config -- --env sandbox
+```
+
+For live plan rotation, set `PAYPAL_ENVIRONMENT=live` and add `--confirm-live` to `paypal:create-plans`.
 
 ## Smoke Tests
 

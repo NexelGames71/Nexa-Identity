@@ -2,6 +2,7 @@ import { nanoid } from "nanoid";
 import { env } from "../config/env.js";
 import type { BillingCheckoutRequest, BillingCustomer, BillingProvider } from "./billing-provider.js";
 import { BillingProviderUnavailableError } from "./billing-provider.js";
+import { getDefaultPayPalPlanIds } from "./paypal-plan-config.js";
 
 interface PayPalAccessTokenResponse {
   access_token: string;
@@ -22,9 +23,11 @@ function paypalBaseUrl() {
   return env.PAYPAL_ENVIRONMENT === "live" ? "https://api-m.paypal.com" : "https://api-m.sandbox.paypal.com";
 }
 
-function paypalPlanIds() {
+function paypalPlanIds(): Record<string, string> {
   try {
-    return JSON.parse(env.PAYPAL_PLAN_IDS) as Record<string, string | undefined>;
+    const configured = JSON.parse(env.PAYPAL_PLAN_IDS) as Record<string, string | undefined>;
+    const overrides = Object.fromEntries(Object.entries(configured).filter(([, planId]) => Boolean(planId)));
+    return { ...getDefaultPayPalPlanIds(env.PAYPAL_ENVIRONMENT), ...overrides };
   } catch {
     throw new BillingProviderUnavailableError("PAYPAL_PLAN_IDS must be valid JSON.");
   }

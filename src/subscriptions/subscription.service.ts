@@ -5,6 +5,7 @@ import { getPlan, plans } from "../products/plan.service.js";
 import type { BillingProvider } from "./billing-provider.js";
 import { BillingProviderUnavailableError, ManualBillingProvider } from "./billing-provider.js";
 import { PayPalBillingProvider } from "./paypal-billing-provider.js";
+import { getDefaultPayPalPlanIds, getPayPalEnvironmentConfig } from "./paypal-plan-config.js";
 
 const billingProviders: Record<string, BillingProvider> = {
   manual: new ManualBillingProvider(),
@@ -18,12 +19,13 @@ export function getBillingProvider(name: string = env.BILLING_PROVIDER) {
 export function getBillingReadiness() {
   const provider = getBillingProvider();
   const paypalPlanIds = parseConfiguredPayPalPlanIds();
+  const paypalConfig = getPayPalEnvironmentConfig(env.PAYPAL_ENVIRONMENT);
   const missingPayPalConfig =
     provider.name === "paypal"
       ? [
           env.PAYPAL_CLIENT_ID ? null : "PAYPAL_CLIENT_ID",
           env.PAYPAL_CLIENT_SECRET ? null : "PAYPAL_CLIENT_SECRET",
-          Object.keys(paypalPlanIds).length > 0 ? null : "PAYPAL_PLAN_IDS"
+          Object.keys(paypalPlanIds).length > 0 ? null : "PayPal plan map"
         ].filter(Boolean)
       : [];
 
@@ -31,7 +33,16 @@ export function getBillingReadiness() {
     provider: provider.name,
     checkoutEnabled: provider.name === "paypal" && missingPayPalConfig.length === 0,
     manualAssignmentEnabled: true,
-    missingConfiguration: missingPayPalConfig
+    missingConfiguration: missingPayPalConfig,
+    paypal:
+      provider.name === "paypal"
+        ? {
+            environment: paypalConfig.environment,
+            productId: paypalConfig.productId,
+            productName: paypalConfig.productName,
+            configuredPlanCount: Object.keys(paypalPlanIds).length
+          }
+        : null
   };
 }
 
@@ -126,9 +137,11 @@ export async function cancelSubscription(params: { userId: string; subscriptionI
 
 function parseConfiguredPayPalPlanIds() {
   try {
-    const value = JSON.parse(env.PAYPAL_PLAN_IDS) as Record<string, string | undefined>;
+    const configured = JSON.parse(env.PAYPAL_PLAN_IDS) as Record<string, string | undefined>;
+    const overrides = Object.fromEntries(Object.entries(configured).filter(([, planId]) => Boolean(planId)));
+    const value = { ...getDefaultPayPalPlanIds(env.PAYPAL_ENVIRONMENT), ...overrides };
     return Object.fromEntries(Object.entries(value).filter(([, planId]) => Boolean(planId)));
   } catch {
-    return {};
+    return getDefaultPayPalPlanIds(env.PAYPAL_ENVIRONMENT);
   }
 }
