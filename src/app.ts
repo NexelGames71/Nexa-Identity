@@ -4,7 +4,6 @@ import { randomBytes } from "node:crypto";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { createRequire } from "node:module";
 import express from "express";
-import type helmetDefault from "helmet";
 import { adminRouter } from "./admin/admin.routes.js";
 import { requireAdminDashboardAccess } from "./admin/middleware/admin-local-access.js";
 import { adminApiRouter } from "./admin/routes/admin-api.routes.js";
@@ -29,7 +28,7 @@ import { subscriptionRouter } from "./subscriptions/subscription.routes.js";
 import { systemRouter } from "./system/system.routes.js";
 
 const require = createRequire(import.meta.url);
-const helmet = require("helmet") as typeof helmetDefault;
+const helmet = require("helmet") as (options?: Record<string, unknown>) => express.RequestHandler;
 
 export function createApp() {
   const app = express();
