@@ -29,7 +29,7 @@ Set these Vercel environment variables at minimum:
 
 ```env
 APP_ENV=production
-DATABASE_URL=postgresql://USER:PASSWORD@HOST:5432/DATABASE?schema=public&sslmode=require
+DATABASE_URL=postgresql://postgres.PROJECT_REF:PERCENT_ENCODED_PASSWORD@aws-REGION.pooler.supabase.com:6543/postgres?schema=public&sslmode=require
 JWT_ACCESS_SECRET=<64+ character random secret>
 JWT_REFRESH_SECRET=<64+ character random secret>
 CORS_ALLOWED_ORIGINS=https://identity.trynexa-ai.com
@@ -104,6 +104,7 @@ When `APP_ENV=production`, the service refuses to boot if:
 
 - JWT secrets still look like placeholders.
 - `DATABASE_URL` points at localhost.
+- `DATABASE_URL` is malformed or contains an unencoded special character in the password, such as `@`.
 - Resend is not configured.
 - `IDENTITY_BASE_URL` is not `https://identity.trynexa-ai.com`.
 - owner bootstrap is still enabled.

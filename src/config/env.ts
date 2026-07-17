@@ -50,6 +50,26 @@ function isPlaceholderSecret(value: string) {
   return value.includes("replace-with") || value.includes("change-me") || value.includes("your-");
 }
 
+function validateDatabaseUrlShape(value: string, errors: string[]) {
+  try {
+    const parsed = new URL(value);
+    if (parsed.protocol !== "postgresql:" && parsed.protocol !== "postgres:") {
+      errors.push("DATABASE_URL must use the postgresql:// protocol.");
+    }
+    if (!parsed.hostname) {
+      errors.push("DATABASE_URL must include a database host.");
+    }
+    if (parsed.hostname.includes("@")) {
+      errors.push("DATABASE_URL host is invalid. Use exactly one @ between credentials and host; percent-encode @ only when it is part of the password.");
+    }
+    if (parsed.hostname.endsWith(".pooler.supabase.com") && parsed.port !== "6543") {
+      errors.push("Supabase transaction pooler DATABASE_URL should use port 6543.");
+    }
+  } catch {
+    errors.push("DATABASE_URL is not a valid URL. Use the Supabase pooler format with exactly one @ between credentials and host; percent-encode special password characters only when they are part of the password.");
+  }
+}
+
 function validateProductionEnv() {
   if (env.APP_ENV !== "production") {
     return;
@@ -61,6 +81,8 @@ function validateProductionEnv() {
   }
   if (!env.DATABASE_URL) {
     errors.push("DATABASE_URL is required when DATABASE_PROVIDER=prisma.");
+  } else {
+    validateDatabaseUrlShape(env.DATABASE_URL, errors);
   }
   if (env.DATABASE_URL.includes("localhost") || env.DATABASE_URL.includes("127.0.0.1")) {
     errors.push("DATABASE_URL must point to managed production PostgreSQL, not localhost.");

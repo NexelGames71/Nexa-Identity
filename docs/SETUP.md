@@ -20,7 +20,7 @@ Nexa Identity uses Supabase PostgreSQL through Prisma. Set:
 
 ```bash
 DATABASE_PROVIDER=prisma
-DATABASE_URL="postgresql://postgres:YOUR_PERCENT_ENCODED_PASSWORD@db.your-project.supabase.co:5432/postgres?schema=public&sslmode=require"
+DATABASE_URL="postgresql://postgres.PROJECT_REF:YOUR_PERCENT_ENCODED_PASSWORD@aws-REGION.pooler.supabase.com:6543/postgres?schema=public&sslmode=require"
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_PUBLISHABLE_KEY=sb_publishable_REPLACE_ME
 SUPABASE_JWKS_URL=https://your-project.supabase.co/auth/v1/.well-known/jwks.json
@@ -28,6 +28,8 @@ SUPABASE_OIDC_TOKEN_ENDPOINT=https://your-project.supabase.co/auth/v1/oauth/toke
 SUPABASE_OIDC_AUTHORIZATION_ENDPOINT=https://your-project.supabase.co/auth/v1/oauth/authorize
 SUPABASE_OIDC_DISCOVERY_URL=https://your-project.supabase.co/auth/v1/.well-known/openid-configuration
 ```
+
+Use the Supabase transaction pooler for Vercel/serverless deployments. The URL should have exactly one `@` between credentials and host. If the database password itself contains special characters, percent-encode those characters before putting them in `DATABASE_URL`; for example, a password-owned `@` must be written as `%40`.
 
 Nexa products should authenticate through Nexa Identity APIs. Supabase is the database host and OIDC/Auth metadata provider, not a product-local replacement for Nexa Identity.
 
