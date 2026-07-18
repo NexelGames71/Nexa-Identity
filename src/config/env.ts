@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { z } from "zod";
+import { z, ZodError } from "zod";
 
 const envSchema = z.object({
   APP_ENV: z.enum(["development", "testing", "production"]).default("development"),
@@ -41,7 +41,25 @@ const envSchema = z.object({
   OWNER_BOOTSTRAP_TOKEN: z.string().optional().default("")
 });
 
-export const env = envSchema.parse(process.env);
+function formatEnvError(error: unknown): never {
+  if (!(error instanceof ZodError)) {
+    throw error;
+  }
+
+  const messages = error.issues.map((issue) => {
+    const name = issue.path.join(".") || "environment";
+    return `${name}: ${issue.message}`;
+  });
+  throw new Error(`Invalid Nexa Identity environment:\n- ${messages.join("\n- ")}`);
+}
+
+export const env = (() => {
+  try {
+    return envSchema.parse(process.env);
+  } catch (error) {
+    return formatEnvError(error);
+  }
+})();
 
 export const identityBaseUrl =
   env.IDENTITY_BASE_URL ?? (env.APP_ENV === "production" ? "https://identity.trynexa-ai.com" : `http://localhost:${env.APP_PORT}`);
