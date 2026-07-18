@@ -112,10 +112,19 @@ export async function registerUser(input: {
   await assignDefaultEntitlements(user.id);
   await initializeDefaultPermissions(user.id);
   const emailVerificationToken = await createEmailVerificationToken(user.id);
-  await sendEmailVerification({ to: user.email, token: emailVerificationToken });
+  let emailVerificationSent = true;
+  try {
+    await sendEmailVerification({ to: user.email, token: emailVerificationToken });
+  } catch (error) {
+    emailVerificationSent = false;
+    console.error("Email verification delivery failed.", {
+      userId: user.id,
+      error: error instanceof Error ? error.message : "Unknown email provider error."
+    });
+  }
   await auditLog({ req, userId: user.id, action: "user.registered", resourceType: "user", resourceId: user.id });
 
-  return { user: presentUser(user), emailVerificationToken };
+  return { user: presentUser(user), emailVerificationToken, emailVerificationSent };
 }
 
 export async function loginUser(input: {

@@ -18,10 +18,27 @@ export type SupabaseAuthUser = {
   email: string;
 };
 
+export class SupabaseAuthConfigError extends Error {
+  constructor(message = "Supabase Auth admin API is not configured.") {
+    super(message);
+    this.name = "SupabaseAuthConfigError";
+  }
+}
+
+export class SupabaseAuthRequestError extends Error {
+  constructor(
+    message: string,
+    readonly status: number
+  ) {
+    super(message);
+    this.name = "SupabaseAuthRequestError";
+  }
+}
+
 function requireSupabaseAdminConfig() {
   const config = getSupabaseConfig();
   if (!config.url || !config.secretKey) {
-    throw new Error("Supabase Auth admin API is not configured.");
+    throw new SupabaseAuthConfigError();
   }
 
   return {
@@ -91,7 +108,7 @@ export async function createSupabaseAuthUser(params: {
 
   const payload = await readSupabaseResponse(response);
   if (!response.ok) {
-    throw new Error(supabaseErrorMessage(payload));
+    throw new SupabaseAuthRequestError(supabaseErrorMessage(payload), response.status);
   }
 
   return normalizeCreatedUser(payload, params.email);
@@ -109,6 +126,6 @@ export async function deleteSupabaseAuthUser(userId: string) {
 
   if (!response.ok && response.status !== 404) {
     const payload = await readSupabaseResponse(response);
-    throw new Error(supabaseErrorMessage(payload));
+    throw new SupabaseAuthRequestError(supabaseErrorMessage(payload), response.status);
   }
 }

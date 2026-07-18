@@ -1,6 +1,21 @@
 import "dotenv/config";
 import { z, ZodError } from "zod";
 
+const envBoolean = z.preprocess((value) => {
+  if (typeof value !== "string") {
+    return value;
+  }
+
+  const normalized = value.trim().toLowerCase();
+  if (["true", "1", "yes", "on"].includes(normalized)) {
+    return true;
+  }
+  if (["false", "0", "no", "off", ""].includes(normalized)) {
+    return false;
+  }
+  return value;
+}, z.boolean());
+
 const envSchema = z.object({
   APP_ENV: z.enum(["development", "testing", "production"]).default("development"),
   APP_PORT: z.coerce.number().int().positive().default(4000),
@@ -30,14 +45,14 @@ const envSchema = z.object({
   PAYPAL_CLIENT_SECRET: z.string().optional().default(""),
   PAYPAL_ENVIRONMENT: z.enum(["sandbox", "live"]).default("sandbox"),
   PAYPAL_PLAN_IDS: z.string().optional().default("{}"),
-  ADMIN_DASHBOARD_ENABLED: z.coerce.boolean().default(false),
+  ADMIN_DASHBOARD_ENABLED: envBoolean.default(false),
   ADMIN_DASHBOARD_HOST: z.string().default("127.0.0.1"),
   ADMIN_DASHBOARD_PORT: z.coerce.number().int().positive().default(3001),
-  ADMIN_ALLOW_LAN: z.coerce.boolean().default(false),
+  ADMIN_ALLOW_LAN: envBoolean.default(false),
   ADMIN_ALLOWED_IPS: z.string().default("127.0.0.1,::1"),
   ADMIN_SESSION_EXPIRES_IN: z.string().default("2h"),
-  ADMIN_REQUIRE_HTTPS: z.coerce.boolean().default(false),
-  ALLOW_OWNER_BOOTSTRAP: z.coerce.boolean().default(false),
+  ADMIN_REQUIRE_HTTPS: envBoolean.default(false),
+  ALLOW_OWNER_BOOTSTRAP: envBoolean.default(false),
   OWNER_BOOTSTRAP_TOKEN: z.string().optional().default("")
 });
 

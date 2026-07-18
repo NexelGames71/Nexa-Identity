@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "../config/database.js";
 import { isProduction } from "../config/env.js";
@@ -29,8 +30,29 @@ import {
 } from "./account-token.service.js";
 import { clearAuthCookies, setAuthCookies } from "./cookie.service.js";
 import { sendPasswordReset } from "../email/email.service.js";
+import { SupabaseAuthConfigError, SupabaseAuthRequestError } from "./supabase-auth.service.js";
 
 export const authRouter = Router();
+
+function isDatabaseUnavailable(error: unknown) {
+  return (
+    error instanceof Prisma.PrismaClientInitializationError ||
+    error instanceof Prisma.PrismaClientRustPanicError ||
+    (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P1001")
+  );
+}
+
+function isDuplicateAccountError(error: unknown) {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  const message = error.message.toLowerCase();
+  return message.includes("unique constraint") ||
+    message.includes("already registered") ||
+    message.includes("already exists") ||
+    message.includes("user already");
+}
 
 authRouter.post(
   "/register",
@@ -43,18 +65,36 @@ authRouter.post(
         {
           user: result.user,
           emailVerificationRequired: true,
+          emailVerificationSent: result.emailVerificationSent,
           emailVerificationToken: isProduction ? undefined : result.emailVerificationToken
         },
         201
       );
     } catch (error) {
-      if (
-        error instanceof Error &&
-        (error.message.includes("Unique constraint") ||
-          error.message.toLowerCase().includes("already registered") ||
-          error.message.toLowerCase().includes("already exists"))
-      ) {
+      if (isDuplicateAccountError(error)) {
         return sendError(res, 409, "conflict", "Email or username is already registered.");
+      }
+      if (isDatabaseUnavailable(error)) {
+        console.error("Registration database unavailable.", error);
+        return sendError(res, 503, "service_unavailable", "Nexa Identity is temporarily unable to reach the account database.");
+      }
+      if (error instanceof SupabaseAuthConfigError) {
+        console.error("Registration Supabase Auth configuration is missing.");
+        return sendError(res, 503, "service_unavailable", "Nexa Identity account creation is temporarily unavailable.");
+      }
+      if (error instanceof SupabaseAuthRequestError) {
+        console.error("Registration Supabase Auth request failed.", {
+          status: error.status,
+          message: error.message
+        });
+        return sendError(
+          res,
+          error.status === 409 || isDuplicateAccountError(error) ? 409 : 503,
+          error.status === 409 || isDuplicateAccountError(error) ? "conflict" : "service_unavailable",
+          error.status === 409 || isDuplicateAccountError(error)
+            ? "Email or username is already registered."
+            : "Nexa Identity account creation is temporarily unavailable."
+        );
       }
       throw error;
     }

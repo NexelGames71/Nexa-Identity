@@ -7,6 +7,7 @@ export type ApiErrorCode =
   | "not_found"
   | "conflict"
   | "rate_limited"
+  | "service_unavailable"
   | "internal_error";
 
 export function sendSuccess<T>(res: Response, data: T, status = 200) {
