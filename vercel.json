@@ -8,8 +8,9 @@
     }
   ],
   "functions": {
-    "api/index.ts": {
-      "maxDuration": 10
+    "api/index.js": {
+      "maxDuration": 10,
+      "includeFiles": "dist/**"
     }
   }
 }

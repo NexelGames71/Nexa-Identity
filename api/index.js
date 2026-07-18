@@ -1,19 +1,16 @@
-import type { IncomingMessage, ServerResponse } from "node:http";
-import type { Express } from "express";
-
-let app: Express | null = null;
-let productSeed: Promise<void> | null = null;
+let app = null;
+let productSeed = null;
 
 async function getApp() {
   if (!app) {
-    const appModule = await import("../src/app.js");
+    const appModule = await import("../dist/src/app.js");
     app = appModule.createApp();
   }
   return app;
 }
 
 async function seedDefaultProducts() {
-  const productsModule = await import("../src/products/entitlement.service.js");
+  const productsModule = await import("../dist/src/products/entitlement.service.js");
   productSeed ??= productsModule.ensureDefaultProducts().catch((error) => {
     console.error("Nexa Identity default product sync failed", error);
     productSeed = null;
@@ -21,7 +18,11 @@ async function seedDefaultProducts() {
   return productSeed;
 }
 
-function writeStartupError(req: IncomingMessage, res: ServerResponse, error: unknown) {
+function escapeHtml(value) {
+  return String(value).replace(/[<>&]/g, (char) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" })[char] ?? char);
+}
+
+function writeStartupError(req, res, error) {
   const message = error instanceof Error ? error.message : "Nexa Identity startup failed.";
   console.error("Nexa Identity startup failed", error);
 
@@ -54,14 +55,14 @@ function writeStartupError(req: IncomingMessage, res: ServerResponse, error: unk
       <section>
         <h1>Nexa Identity could not start</h1>
         <p>The authentication pages are installed, but the server failed during startup before routing could run.</p>
-        <code>${message.replace(/[<>&]/g, (char) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" })[char] ?? char)}</code>
+        <code>${escapeHtml(message)}</code>
       </section>
     </main>
   </body>
 </html>`);
 }
 
-export default async function handler(req: IncomingMessage, res: ServerResponse) {
+export default async function handler(req, res) {
   try {
     const expressApp = await getApp();
     void seedDefaultProducts();
