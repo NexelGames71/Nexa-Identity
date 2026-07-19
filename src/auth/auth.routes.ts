@@ -35,10 +35,13 @@ import { SupabaseAuthConfigError, SupabaseAuthRequestError } from "./supabase-au
 export const authRouter = Router();
 
 function isDatabaseUnavailable(error: unknown) {
+  const message = error instanceof Error ? error.message.toLowerCase() : "";
+
   return (
     error instanceof Prisma.PrismaClientInitializationError ||
     error instanceof Prisma.PrismaClientRustPanicError ||
-    (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P1001")
+    (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P1001") ||
+    (message.includes("prepared statement") && message.includes("does not exist"))
   );
 }
 
@@ -294,7 +297,17 @@ authRouter.post(
       setAuthCookies(res, result.tokens);
       return sendSuccess(res, result);
     } catch (error) {
-      return sendError(res, 401, "unauthorized", error instanceof Error ? error.message : "Authorization code is invalid.");
+      if (isDatabaseUnavailable(error)) {
+        console.error("Authorization code exchange database unavailable.", error);
+        return sendError(
+          res,
+          503,
+          "service_unavailable",
+          "Nexa Identity is temporarily unable to complete sign in. Please try again."
+        );
+      }
+
+      return sendError(res, 401, "unauthorized", "Authorization code is invalid or expired.");
     }
   })
 );
