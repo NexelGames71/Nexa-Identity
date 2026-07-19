@@ -111,13 +111,20 @@ function authPage(params: {
       successBox.style.display = "block";
       errorBox.style.display = "none";
     }
+    function compactText(value, max, fallback) {
+      const text = typeof value === "string" && value.trim().length ? value.trim() : fallback;
+      return text.slice(0, max);
+    }
     async function postJson(path, body, token) {
       const headers = { "Content-Type": "application/json" };
       if (token) headers.Authorization = "Bearer " + token;
       const response = await fetch(path, { method: "POST", headers, body: JSON.stringify(body), credentials: "include" });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok || payload.ok === false) {
-        throw new Error(payload?.error?.message || payload?.message || "Nexa Identity request failed.");
+        const requestError = new Error(payload?.error?.message || payload?.message || "Nexa Identity request failed.");
+        requestError.status = response.status;
+        requestError.code = payload?.error?.code || payload?.code;
+        throw requestError;
       }
       return payload.data || payload;
     }
@@ -136,20 +143,26 @@ function authPage(params: {
         if (boot.mode === "signup") {
           const displayName = document.getElementById("name")?.value?.trim() || email;
           const baseUsername = email.split("@")[0].replace(/[^a-zA-Z0-9_.-]/g, "").slice(0, 24);
-          await postJson("/v1/auth/register", {
-            email,
-            password,
-            displayName,
-            username: baseUsername.length >= 3 ? baseUsername : "user" + Date.now()
-          });
+          try {
+            await postJson("/v1/auth/register", {
+              email,
+              password,
+              displayName,
+              username: baseUsername.length >= 3 ? baseUsername : "user" + Date.now()
+            });
+          } catch (error) {
+            if (error?.status !== 409) {
+              throw error;
+            }
+          }
         }
         const session = await postJson("/v1/auth/login", {
           identifier: email,
           password,
           deviceName: "Nexa Web",
           deviceType: "browser",
-          platform: navigator.platform || "web",
-          browser: navigator.userAgent || "web"
+          platform: compactText(navigator.platform, 80, "web"),
+          browser: compactText(navigator.userAgent, 80, "web")
         });
         const code = await postJson("/v1/auth/authorize-code", {
           clientId: boot.clientId,

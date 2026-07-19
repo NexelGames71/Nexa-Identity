@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { prisma } from "../config/database.js";
 import { getPlan } from "./plan.service.js";
 import { defaultProducts } from "./products.js";
@@ -15,9 +16,7 @@ export async function ensureDefaultProducts() {
 }
 
 export async function assignDefaultEntitlements(userId: string) {
-  await ensureDefaultProducts();
-
-  await prisma.productEntitlement.createMany({
+  const createEntitlements = () => prisma.productEntitlement.createMany({
     data: [
       {
         userId,
@@ -43,6 +42,18 @@ export async function assignDefaultEntitlements(userId: string) {
     ],
     skipDuplicates: true
   });
+
+  try {
+    await createEntitlements();
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2003") {
+      await ensureDefaultProducts();
+      await createEntitlements();
+      return;
+    }
+
+    throw error;
+  }
 }
 
 export async function getUserEntitlements(userId: string) {
