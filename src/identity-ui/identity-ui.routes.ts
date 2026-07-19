@@ -17,6 +17,14 @@ function safeUrl(value: unknown, fallback: string) {
   }
 }
 
+function escapeAttr(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
 function authPage(params: {
   mode: PageMode;
   title: string;
@@ -38,6 +46,18 @@ function authPage(params: {
 
   const isSignup = params.mode === "signup";
   const isForgot = params.mode === "forgot-password";
+  const authQuery = new URLSearchParams({
+    client_id: params.clientId,
+    redirect_uri: params.redirectUri,
+    return_to: params.returnTo
+  });
+  if (params.state) {
+    authQuery.set("state", params.state);
+  }
+  const authQueryString = authQuery.toString();
+  const loginHref = `/login?${authQueryString}`;
+  const signupHref = `/signup?${authQueryString}`;
+  const forgotHref = `/forgot-password?${authQueryString}`;
 
   return `<!doctype html>
 <html lang="en">
@@ -71,7 +91,7 @@ function authPage(params: {
 <body>
   <header>
     <div class="brand"><span class="mark">N</span><span>Nexa Identity</span></div>
-    <a href="${params.returnTo}">Back to Nexa</a>
+    <a href="${escapeAttr(params.returnTo)}">Back to Nexa</a>
   </header>
   <main>
     <section class="card">
@@ -87,8 +107,12 @@ function authPage(params: {
       <div id="error" class="error"></div>
       <div id="success" class="success"></div>
       <div class="row">
-        ${isSignup ? '<a href="/login">Already have an account?</a>' : '<a href="/signup">Create account</a>'}
-        ${!isForgot ? '<a href="/forgot-password">Forgot password?</a>' : '<a href="/login">Back to sign in</a>'}
+        ${
+          isSignup
+            ? `<a href="${escapeAttr(loginHref)}">Already have an account?</a>`
+            : `<a href="${escapeAttr(signupHref)}">Create account</a>`
+        }
+        ${!isForgot ? `<a href="${escapeAttr(forgotHref)}">Forgot password?</a>` : `<a href="${escapeAttr(loginHref)}">Back to sign in</a>`}
       </div>
     </section>
   </main>
